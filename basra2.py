@@ -1,22 +1,22 @@
 import os, random
 
-def max(list_nb):
-	max_card = list_nb[0]
+def min(list_nb):
+	min_card = 0
 	for card in list_nb:
-		if card > max_card:
-			max_card = card
-	return max_card
+		if card < min_card:
+			min_card = card
+	return min_card
 	
-def sort_descending(cartes:list):
+def sort_ascending(cartes:list):
 	sortie = False
-	descending_list = []
+	ascending_list = []
 	while not sortie:
 		if len(cartes) == 0:
 			sortie = True
 		else:
-			max_card = max(cartes)
-			descending_list.append(max_card)
-	return descending_list
+			min_card = min(cartes)
+			ascending_list.append(min_card)
+	return ascending_list
 
 class Carte:
 	def __init__(self,  numero: str, couleur: str) -> None:
@@ -31,8 +31,8 @@ class Carte:
 			return True
 		return False
 
-	def __gt__(self, autre_carte): #pour les cartes non figures
-		return int(self.numero ) > int(self.numero)
+	def __lt__(self, autre_carte): #pour les cartes non figures
+		return int(self.numero ) < int(self.numero)
 
 	def __add__(self, autre_carte:object):
 		return self.nb() + autre_carte.nb()
@@ -133,6 +133,7 @@ class Paquet_Du_jeu(Paquet):
 class Table():
 	def __init__(self, paquet:Paquet) -> None:
 		self.paquet = paquet
+		self.basra = False
 
 	def ajoute_carte(self, carte: Carte):
 		self.paquet.cartes.append(carte)
@@ -155,12 +156,12 @@ class Table():
 			print(f"{str(carte): >4}", end = "")
 		print()
 	
-	def descending_card_nbs(self, carte_joeur:Carte):
+	def ascending_card_nbs(self, carte_joeur:Carte):
 		nb_cards_only = []
 		for carte_table in self.get_table():
 			if carte_table.isnumeric():
 				nb_cards_only.append(carte_table)
-		nb_cards_only = sort_descending(nb_cards_only)
+		nb_cards_only = sort_ascending(nb_cards_only)
 		exclude_higher_card = []
 		for card in nb_cards_only:
 			if card < carte_joeur:
@@ -178,24 +179,27 @@ class Table():
 		self.update_table(found_duplicates[-1])
 		return combination_duplicates
 	
-	def table_combinaisons(self, cartes:list, somme_objectif:int):
-		sortie = False
+	def sum_cards(cartes:list):
+		sum_cartes = 0
+		if len(cartes) == 0:
+			return 0
+		elif len(cartes) == 1:
+			return cartes[0].nb()
+		for carte in cartes:
+			sum_cartes += carte.nb()
+		return sum_cartes
+
+	def table_combinaisons(self, cartes:list, somme_objectif:int, somme_table=[]):
 		list_combinations = []
-		somme_table = cartes[0]
-		while not sortie:
-			if type(somme_table) != list:
-				somme_table = list(somme_table)
-			if len(cartes) == 1:
-				sortie == True
-			else:
-				if somme_table == somme_objectif:
-					list_combinations.append[somme_table]
-				somme_table.append(cartes[1])
-				if len(cartes) == 2:
-					list_combinations.append(self.table_combinaisons(somme_table, somme_objectif))
-				else: 
-					list_combinations.append(self.table_combinaisons(cartes[2:].insert(0, somme_table)))
-		return list_combinations
+		somme_table = somme_table
+		if self.sum_cards(somme_table) == somme_objectif:
+			list_combinations.append(somme_table)
+		if self.sum_cards(somme_table) >= somme_objectif:
+			return list_combinations
+		for i in range(len(cartes)):
+			carte_verif = cartes[i]
+			cartes_restantes = cartes[i+1:]
+		list_combinations.append(self.table_combinaisons(cartes_restantes, somme_objectif, somme_table + [carte_verif]))
 
 	def choix_joeur(self, carte_joeur:Carte):
 		if self.table_vide():
@@ -207,13 +211,7 @@ class Table():
 			temp_table = self
 			possibilites_capture = temp_table.find_duplicates()
 			if carte_joeur.numero.isnumeric():
-				sortie = False
-				while not sortie:
-					if len(temp_table) == 0:
-						sortie = True
-					else:
-						possibilites_capture.append(temp_table.table_combinaisons(temp_table.descending_card_nbs(carte_joeur), carte_joeur.nb()))
-						temp_table.update_table([temp_table.paquet.cartes[0]])
+				possibilites_capture + temp_table.table_combinaisons(temp_table.ascending_card_nbs(carte_joeur), carte_joeur.nb())
 			return possibilites_capture
 
 
