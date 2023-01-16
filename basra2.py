@@ -211,9 +211,8 @@ class Table():
 				while not sortie:
 					if len(temp_table) == 0:
 						sortie = True
-						return
 					else:
-						temp_table.table_combinaisons(temp_table.descending_card_nbs(carte_joeur), carte_joeur.nb())
+						possibilites_capture.append(temp_table.table_combinaisons(temp_table.descending_card_nbs(carte_joeur), carte_joeur.nb()))
 						temp_table.update_table([temp_table.paquet.cartes[0]])
 			return possibilites_capture
 
