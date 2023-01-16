@@ -204,7 +204,7 @@ class Table():
 	def choix_joeur(self, carte_joeur:Carte):
 		if self.table_vide():
 			self.ajoute_carte(carte_joeur)
-			return {"1" : "Deposer carte sur la table."}, {"1" : Paquet([carte_joeur])}
+			return {"1" : Paquet([carte_joeur])}
 		elif carte_joeur.is_valet():
 			return {"1" : Paquet([carte_joeur] + self.paquet.cartes)}
 		else:
