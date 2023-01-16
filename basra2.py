@@ -155,19 +155,24 @@ class Table():
 			print(f"{str(carte): >4}", end = "")
 		print()
 	
-	def descending_card_nbs(cartes:list):
+	def descending_card_nbs(self, carte_joeur:Carte):
 		nb_cards_only = []
-		for carte in cartes:
-			if carte.isnumeric():
-				nb_cards_only.append(carte)
-		return sort_descending(nb_cards_only)
+		for carte_table in self.get_table():
+			if carte_table.isnumeric():
+				nb_cards_only.append(carte_table)
+		nb_cards_only = sort_descending(nb_cards_only)
+		exclude_higher_card = []
+		for card in nb_cards_only:
+			if card < carte_joeur:
+				exclude_higher_card.append(nb_cards_only)
+		return exclude_higher_card
 
-	def find_duplicates(self, carte:Carte):
+	def find_duplicates(self, carte_joeur:Carte):
 		combination_duplicates = []
 		found_duplicates = []
 		table = self.get_table()
 		for table_carte in table:
-			if table_carte == carte:
+			if table_carte == carte_joeur:
 				found_duplicates.append(table_carte)
 				combination_duplicates.append(found_duplicates)
 		self.update_table(found_duplicates[-1])
@@ -175,30 +180,40 @@ class Table():
 	
 	def table_combinaisons(self, cartes:list, somme_objectif:int):
 		sortie = False
+		list_combinations = []
 		somme_table = cartes[0]
 		while not sortie:
 			if type(somme_table) != list:
 				somme_table = list(somme_table)
-			if somme_table == somme_objectif:
-				return 
+			if len(cartes) == 1:
+				sortie == True
+			else:
+				if somme_table == somme_objectif:
+					list_combinations.append[somme_table]
+				somme_table.append(cartes[1])
+				if len(cartes) == 2:
+					list_combinations.append(self.table_combinaisons(somme_table, somme_objectif))
+				else: 
+					list_combinations.append(self.table_combinaisons(cartes[2:].insert(0, somme_table)))
+		return list_combinations
 
-	def choix_joeur(self, carte:Carte):
+	def choix_joeur(self, carte_joeur:Carte):
 		if self.table_vide():
-			self.ajoute_carte(carte)
-			return {"1" : "Deposer carte sur la table."}, {"1" : Paquet([carte])}
-		elif carte.is_valet():
-			return {"1" : Paquet([carte] + self.paquet.cartes)}
+			self.ajoute_carte(carte_joeur)
+			return {"1" : "Deposer carte sur la table."}, {"1" : Paquet([carte_joeur])}
+		elif carte_joeur.is_valet():
+			return {"1" : Paquet([carte_joeur] + self.paquet.cartes)}
 		else:
 			temp_table = self
 			possibilites_capture = temp_table.find_duplicates()
-			if carte.numero.isnumeric():
+			if carte_joeur.numero.isnumeric():
 				sortie = False
 				while not sortie:
 					if len(temp_table) == 0:
 						sortie = True
 						return
 					else:
-						temp_table.table_combinaisons(temp_table.get_table(), carte.nb())
+						temp_table.table_combinaisons(temp_table.descending_card_nbs(carte_joeur), carte_joeur.nb())
 						temp_table.update_table([temp_table.paquet.cartes[0]])
 			return possibilites_capture
 
