@@ -1,5 +1,23 @@
 import os, random
 
+def max(list_nb):
+	max_card = list_nb[0]
+	for card in list_nb:
+		if card > max_card:
+			max_card = card
+	return max_card
+	
+def sort_descending(cartes:list):
+	sortie = False
+	descending_list = []
+	while not sortie:
+		if len(cartes) == 0:
+			sortie = True
+		else:
+			max_card = max(cartes)
+			descending_list.append(max_card)
+	return descending_list
+
 class Carte:
 	def __init__(self,  numero: str, couleur: str) -> None:
 		self.numero = numero
@@ -8,18 +26,21 @@ class Carte:
 	def __str__(self) -> str:
 		return self.numero + self.couleur
 	
-	def __eq__(self, autre_carte):
-		if self.numero == autre_carte.numero and self.couleur == autre_carte.couleur:
+	def __eq__(self, autre_carte:object):
+		if self.numero == autre_carte.numero:
 			return True
 		return False
-		
+
 	def __gt__(self, autre_carte): #pour les cartes non figures
 		return int(self.numero ) > int(self.numero)
+
+	def __add__(self, autre_carte:object):
+		return self.nb() + autre_carte.nb()
 
 	def is_valet(self):
 		return self.numero == "V"
 
-	def carte_nb(self):
+	def nb(self):
 		return int(self.numero)
 
 	def affiche_carte(self) -> None:
@@ -109,326 +130,97 @@ class Paquet_Du_jeu(Paquet):
 				paquet_table.append(self.carte_jeu[0])
 				self.carte_jeu.pop(0)
 
-class Table(Paquet):
-	super().__init__([])
+class Table():
+	def __init__(self, paquet:Paquet) -> None:
+		self.paquet = paquet
 
 	def ajoute_carte(self, carte: Carte):
-		self.cartes.append(carte)
+		self.paquet.cartes.append(carte)
 
 	def get_table(self):
-		return self.cartes
+		return self.paquet.cartes
 
 	def update_table(self, pile: list): #on retire une combinaison gagnée
 		for carte in pile:
-			self.cartes.remove(carte)
+			self.paquet.cartes.remove(carte)
 	
 	def table_vide(self):
-		return not self.cartes
+		return not self.paquet.cartes
 
 	def set_table(self, cartes: list):
-		self.cartes = cartes
+		self.paquet.cartes = cartes
 	
 	def affiche_table(self): 
-		for carte in self.cartes:
+		for carte in self.paquet.cartes:
 			print(f"{str(carte): >4}", end = "")
 		print()
+	
+	def descending_card_nbs(cartes:list):
+		nb_cards_only = []
+		for carte in cartes:
+			if carte.isnumeric():
+				nb_cards_only.append(carte)
+		return sort_descending(nb_cards_only)
 
-	def contient_deux_trefle(self):
-		#return l'indice du 2 trefle dans la table , -1 dans le cas ou elle n'existe pas ou table vide
+	def find_duplicates(self, carte:Carte):
+		combination_duplicates = []
+		found_duplicates = []
+		table = self.get_table()
+		for table_carte in table:
+			if table_carte == carte:
+				found_duplicates.append(table_carte)
+				combination_duplicates.append(found_duplicates)
+		self.update_table(found_duplicates[-1])
+		return combination_duplicates
+	
+	def table_combinaisons(self, cartes:list, somme_objectif:int):
+		sortie = False
+		somme_table = cartes[0]
+		while not sortie:
+			if type(somme_table) != list:
+				somme_table = list(somme_table)
+			if somme_table == somme_objectif:
+				return 
+
+	def choix_joeur(self, carte:Carte):
 		if self.table_vide():
-			return -1
+			self.ajoute_carte(carte)
+			return {"1" : "Deposer carte sur la table."}, {"1" : Paquet([carte])}
+		elif carte.is_valet():
+			return {"1" : Paquet([carte] + self.paquet.cartes)}
 		else:
-			deux_trefle = carte("2","♣")
-			for i, carte in enumerate(self.cartes):
-				if carte == deux_trefle:
-					return i
-			return -1
-	
-	def contient_dix_carreau(self):
-		if self.table_vide():
-			return -1
-		else:
-			dix_carreau = carte("10","♦")
-			for i, carte in enumerate(self.cartes):
-				if carte == dix_carreau:
-					return i
-			return -1
-	def calcul_liste_somme(val: int, table: list[Carte], attente: list, result: list[list]):
-		if table :
-			if table[0].nb() == val:
-				result.append(attente + [table[0]] )
-				Table.calcul_liste_somme(val, table[1:], attente, result) 
-			elif table[0].nb() < val:
-					val_1 = val - int(table[0].str_nb())
-					Table.calcul_liste_somme(val_1, table[1:], attente + [table[0]], result)
-					Table.calcul_liste_somme(val, table[1:], attente, result )
-			else:
-				Table.calcul_liste_somme(val, table[1:], attente, result)
-	@staticmethod
-	def score_combinaison(comb: list):
-		score = 0
-		for c in comb:
-			if c.deux_trefle():
-				score += 2
-			elif c.dix_carreau():
-				score += 3
-			elif c.valet() or c.un_as():
-				score += 1
-		return score
-	@staticmethod    
-	def ecarter_images(table: list):
-		table_1 = []
-		for elem in table:
-			if not elem in  Paquet.LISTE_IMAGES:
-				table_1.append(elem)
-		return table_1
-	
-	def trouve_liste_choix_joueur(self) -> dict:
-
-		def ajoute(liste_choix: dict, ky: str, c: Carte):
-			if ky in liste_choix:
-					liste_choix[ky].append(c)
-			else:
-				liste_choix[ky] = [c]
-
-		table = list(self.cartes)
-		liste_choix : dict
-		liste_choix = {}
-		for c in table:
-			if c in Paquet.LISTE_IMAGES:
-				ajoute(liste_choix, c.str_nb(), c)
-		table = Table.ecarter_images(table)    
-		for c in table:
-			val = c.nb()
-			if not c.str_nb() in liste_choix:
-				result = []
-				Table.calcul_liste_somme(val, table, [], result)
-				liste_choix[c.str_nb()] = result
-			else:
-				if not [c] in liste_choix[c.str_nb()]:
-					liste_choix[c.str_nb()].append([c])
-		return liste_choix
-	
-	def trouve_combinaisons_ganante(self, c: Carte, liste_choix: dict):
-		
-		def intersecte(liste_1: list, liste_2: list):
-			for elem in liste_1:
-				if elem in liste_2:
-					return True
-			return False
-		resultat = []
-		temp = []
-		chr_nb = c.str_nb()
-		if chr_nb in liste_choix: 
-			if c in Paquet.LISTE_IMAGES:
-				return liste_choix[chr_nb]
-			temp = list(liste_choix[chr_nb])
-		else:
-			table = self.cartes
-			if c in Paquet.LISTE_IMAGES:
-				res = []
-				for elem in table:
-					if c.str_nb() == elem.str_nb():
-						res.append(elem)
-				return res
-			table = Table.ecarter_images(table)
-			Table.calcul_liste_somme(c.nb(), table, [], temp)
-		fin = False
-		while not fin:
-			if temp:
-				intersect_list = [temp[0]]
-				scr = Table.score_combinaison(temp[0])
-				res = temp[0]
-				for comb in temp[1:]:
-					if intersecte(comb, temp[0]):
-						intersect_list.append(comb)
-						scr_c = Table.score_combinaison(comb)
-						if scr < scr_c:
-							res = comb
-							scr = scr_c
-						elif scr == scr_c:
-							if len(res) < len(comb):
-								res = comb
-				resultat.append(res)
-				for c in intersect_list:
-					if intersecte(res, c):
-						temp.remove(c) 
-			else:
-				fin = True
-		resultat_final = []
-		for elem in resultat:
-			resultat_final += elem
-		return resultat_final     
+			temp_table = self
+			possibilites_capture = temp_table.find_duplicates()
+			if carte.numero.isnumeric():
+				sortie = False
+				while not sortie:
+					if len(temp_table) == 0:
+						sortie = True
+						return
+					else:
+						temp_table.table_combinaisons(temp_table.get_table(), carte.nb())
+						temp_table.update_table([temp_table.paquet.cartes[0]])
+			return possibilites_capture
 
 
-class Joeur(Paquet):
-	def __init__(self) -> None:
+class Joeur():
+	def __init__(self, paquet:Paquet) -> None:
 		self.dealer = False
 		self.tour_jouer = False
 		self.ai = True
-	
-	super().__init__([])
+		self.paquet = paquet
 	
 	def affiche_jeu(self):
 		if self.tour_jouer == False:
 			cacher_carte = "▄"
-			print(f"{cacher_carte:>4}"*len(self.cartes), end = "")
+			print(f"{cacher_carte:>4}"*len(self.paquet.cartes), end = "")
 		else:
-			self.affiche()
+			self.paquet.affiche()
+
+
 
 class AI:
 	pass
-
-class Table(Paquet):
-	super().__init__([])
-
-	def ajoute_carte(self, carte: Carte):
-		self.cartes.append(carte)
-
-	def get_table(self):
-		return self.cartes
-
-	def update_table(self, pile: list): #on retire une combinaison gagnée
-		for carte in pile:
-			self.cartes.remove(carte)
-	
-	def table_vide(self):
-		return not self.cartes
-
-	def set_table(self, cartes: list):
-		self.cartes = cartes
-	
-	def affiche_table(self): 
-		for carte in self.cartes:
-			print(f"{str(carte): >4}", end = "")
-		print()
-
-	def contient_deux_trefle(self):
-		#return l'indice du 2 trefle dans la table , -1 dans le cas ou elle n'existe pas ou table vide
-		if self.table_vide():
-			return -1
-		else:
-			deux_trefle = carte("2","♣")
-			for i, carte in enumerate(self.cartes):
-				if carte == deux_trefle:
-					return i
-			return -1
-	
-	def contient_dix_carreau(self):
-		if self.table_vide():
-			return -1
-		else:
-			dix_carreau = carte("10","♦")
-			for i, carte in enumerate(self.cartes):
-				if carte == dix_carreau:
-					return i
-			return -1
-	def calcul_liste_somme(val: int, table: list[Carte], attente: list, result: list[list]):
-		if table :
-			if table[0].nb() == val:
-				result.append(attente + [table[0]] )
-				Table.calcul_liste_somme(val, table[1:], attente, result) 
-			elif table[0].nb() < val:
-					val_1 = val - int(table[0].str_nb())
-					Table.calcul_liste_somme(val_1, table[1:], attente + [table[0]], result)
-					Table.calcul_liste_somme(val, table[1:], attente, result )
-			else:
-				Table.calcul_liste_somme(val, table[1:], attente, result)
-	@staticmethod
-	def score_combinaison(comb: list):
-		score = 0
-		for c in comb:
-			if c.deux_trefle():
-				score += 2
-			elif c.dix_carreau():
-				score += 3
-			elif c.valet() or c.un_as():
-				score += 1
-		return score
-	@staticmethod    
-	def ecarter_images(table: list):
-		table_1 = []
-		for elem in table:
-			if not elem in  Paquet.LISTE_IMAGES:
-				table_1.append(elem)
-		return table_1
-	
-	def trouve_liste_choix_joueur(self) -> dict:
-
-		def ajoute(liste_choix: dict, ky: str, c: Carte):
-			if ky in liste_choix:
-					liste_choix[ky].append(c)
-			else:
-				liste_choix[ky] = [c]
-
-		table = list(self.cartes)
-		liste_choix : dict
-		liste_choix = {}
-		for c in table:
-			if c in Paquet.LISTE_IMAGES:
-				ajoute(liste_choix, c.str_nb(), c)
-		table = Table.ecarter_images(table)    
-		for c in table:
-			val = c.nb()
-			if not c.str_nb() in liste_choix:
-				result = []
-				Table.calcul_liste_somme(val, table, [], result)
-				liste_choix[c.str_nb()] = result
-			else:
-				if not [c] in liste_choix[c.str_nb()]:
-					liste_choix[c.str_nb()].append([c])
-		return liste_choix
-	
-	def trouve_combinaisons_ganante(self, c: Carte, liste_choix: dict):
-		
-		def intersecte(liste_1: list, liste_2: list):
-			for elem in liste_1:
-				if elem in liste_2:
-					return True
-			return False
-		resultat = []
-		temp = []
-		chr_nb = c.str_nb()
-		if chr_nb in liste_choix: 
-			if c in Paquet.LISTE_IMAGES:
-				return liste_choix[chr_nb]
-			temp = list(liste_choix[chr_nb])
-		else:
-			table = self.cartes
-			if c in Paquet.LISTE_IMAGES:
-				res = []
-				for elem in table:
-					if c.str_nb() == elem.str_nb():
-						res.append(elem)
-				return res
-			table = Table.ecarter_images(table)
-			Table.calcul_liste_somme(c.nb(), table, [], temp)
-		fin = False
-		while not fin:
-			if temp:
-				intersect_list = [temp[0]]
-				scr = Table.score_combinaison(temp[0])
-				res = temp[0]
-				for comb in temp[1:]:
-					if intersecte(comb, temp[0]):
-						intersect_list.append(comb)
-						scr_c = Table.score_combinaison(comb)
-						if scr < scr_c:
-							res = comb
-							scr = scr_c
-						elif scr == scr_c:
-							if len(res) < len(comb):
-								res = comb
-				resultat.append(res)
-				for c in intersect_list:
-					if intersecte(res, c):
-						temp.remove(c) 
-			else:
-				fin = True
-		resultat_final = []
-		for elem in resultat:
-			resultat_final += elem
-		return resultat_final     
 
 class Partie:
 	pass
